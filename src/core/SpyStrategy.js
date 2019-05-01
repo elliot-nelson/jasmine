@@ -85,6 +85,84 @@ getJasmineRequireObj().SpyStrategy = function(j$) {
   };
 
   /**
+   * Tell the spy to return a promise resolving to the specified value when invoked.
+   * @name SpyStrategy#resolveValue
+   * @function
+   * @param {*} value The value to return.
+   */
+  SpyStrategy.prototype.resolveValue = function(value) {
+    var global = j$.getGlobal();
+
+    if (!global.Promise) {
+      throw new Error('resolveValue is unavailable because the environment does not support promises.');
+    }
+
+    this.plan = function() {
+      return global.Promise.resolve(value);
+    };
+    return this.getSpy();
+  };
+
+  /**
+   * Tell the spy to return a promise resolving to one of the specified values (sequentially) when invoked.
+   * @name SpyStrategy#resolveValues
+   * @function
+   * @param {...*} values - Values to be returned on subsequent calls to the spy.
+   */
+  SpyStrategy.prototype.resolveValues = function() {
+    var global = j$.getGlobal();
+
+    if (!global.Promise) {
+      throw new Error('resolveValues is unavailable because the environment does not support promises.');
+    }
+
+    var values = Array.prototype.slice.call(arguments);
+    this.plan = function () {
+      return global.Promise.resolve(values.shift());
+    };
+    return this.getSpy();
+  };
+
+  /**
+   * Tell the spy to return a promise rejecting with the specified value when invoked.
+   * @name SpyStrategy#rejectValue
+   * @function
+   * @param {*} value The value to return.
+   */
+  SpyStrategy.prototype.rejectValue = function(value) {
+    var global = j$.getGlobal();
+
+    if (!global.Promise) {
+      throw new Error('rejectValue is unavailable because the environment does not support promises.');
+    }
+
+    this.plan = function() {
+      return global.Promise.reject(value);
+    };
+    return this.getSpy();
+  };
+
+  /**
+   * Tell the spy to return a promise reject with one of the specified values (sequentially) when invoked.
+   * @name SpyStrategy#rejectValues
+   * @function
+   * @param {...*} values - Values to be returned on subsequent calls to the spy.
+   */
+  SpyStrategy.prototype.rejectValues = function() {
+    var global = j$.getGlobal();
+
+    if (!global.Promise) {
+      throw new Error('rejectValues is unavailable because the environment does not support promises.');
+    }
+
+    var values = Array.prototype.slice.call(arguments);
+    this.plan = function () {
+      return global.Promise.reject(values.shift());
+    };
+    return this.getSpy();
+  };
+
+  /**
    * Tell the spy to throw an error when invoked.
    * @name SpyStrategy#throwError
    * @function
@@ -109,6 +187,20 @@ getJasmineRequireObj().SpyStrategy = function(j$) {
       throw new Error('Argument passed to callFake should be a function, got ' + fn);
     }
     this.plan = fn;
+    return this.getSpy();
+  };
+
+  /**
+   * Tell the spy to call the specified fake implementations (sequentially) each time the spy is invoked.
+   * @name SpyStrategy#callFakes
+   * @function
+   * @param {...*} fns - Functions to invoke with the passed parameters.
+   */
+  SpyStrategy.prototype.callFakes = function() {
+    var fns = Array.prototype.slice.call(arguments);
+    this.plan = function () {
+      return fns.shift().apply(this, arguments);
+    };
     return this.getSpy();
   };
 
