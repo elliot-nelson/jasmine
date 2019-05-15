@@ -15,6 +15,7 @@ getJasmineRequireObj().Spec = function(j$) {
     this.catchingExceptions = attrs.catchingExceptions || function() { return true; };
     this.throwOnExpectationFailure = !!attrs.throwOnExpectationFailure;
     this.timer = attrs.timer || j$.noopTimer;
+    this.expectsToVerify = [];
 
     if (!this.queueableFn.fn) {
       this.pend();

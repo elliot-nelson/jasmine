@@ -225,18 +225,37 @@ getJasmineRequireObj().Env = function(j$) {
       return 'suite' + nextSuiteId++;
     };
 
+    function verifyAndClearExpectations(runnable) {
+      if (runnable.expectsToVerify) {
+        for (var i = 0; i < runnable.expectsToVerify.length; i++) {
+          if (!runnable.expectsToVerify[i].matched) {
+            var error = new Error('Expectation missing, calls to `expect()` must be followed by a call to the desired matcher');
+
+            // The callstack of this error will be the line where the user originally called expect()... Plus
+            // a boatload of internal jasmine, which the exception formatter should remove for us.
+            error.stack = runnable.expectsToVerify[i].savedStack;
+            self.fail(error);
+          }
+        }
+      }
+      runnable.expectsToVerify = [];
+    }
+
     var expectationFactory = function(actual, spec) {
-      return j$.Expectation.factory({
+      var expectation = j$.Expectation.factory({
         util: j$.matchersUtil,
         customEqualityTesters: runnableResources[spec.id].customEqualityTesters,
         customMatchers: runnableResources[spec.id].customMatchers,
         actual: actual,
         addExpectationResult: addExpectationResult
       });
+      currentRunnable().expectsToVerify.push(expectation);
 
       function addExpectationResult(passed, result) {
         return spec.addExpectationResult(passed, result);
       }
+
+      return expectation;
     };
 
     var asyncExpectationFactory = function(actual, spec) {
@@ -538,6 +557,8 @@ getJasmineRequireObj().Env = function(j$) {
             throw new Error('Tried to complete the wrong suite');
           }
 
+          verifyAndClearExpectations(suite);
+
           clearResourcesForRunnable(suite.id);
           currentlyExecutingSuites.pop();
 
@@ -835,6 +856,8 @@ getJasmineRequireObj().Env = function(j$) {
       return spec;
 
       function specResultCallback(result, next) {
+        verifyAndClearExpectations(spec);
+
         clearResourcesForRunnable(spec.id);
         currentSpec = null;
 

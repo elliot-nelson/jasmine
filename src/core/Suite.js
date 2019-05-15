@@ -18,6 +18,8 @@ getJasmineRequireObj().Suite = function(j$) {
 
     this.children = [];
 
+    this.expectsToVerify = [];
+
     /**
      * @typedef SuiteResult
      * @property {Int} id - The unique id of this suite.

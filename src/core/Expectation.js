@@ -9,6 +9,8 @@ getJasmineRequireObj().Expectation = function(j$) {
    */
   function Expectation(options) {
     this.expector = new j$.Expector(options);
+    this.matched = false;
+    this.savedStack = new Error().stack;
 
     var customMatchers = options.customMatchers || {};
     for (var matcherName in customMatchers) {
@@ -87,6 +89,8 @@ getJasmineRequireObj().Expectation = function(j$) {
 
   function wrapSyncCompare(name, matcherFactory) {
     return function() {
+      this.matched = true;
+
       var result = this.expector.compare(name, matcherFactory, arguments);
       this.expector.processResult(result);
     };
@@ -95,6 +99,7 @@ getJasmineRequireObj().Expectation = function(j$) {
   function wrapAsyncCompare(name, matcherFactory) {
     return function() {
       var self = this;
+      this.matched = true;
 
       // Capture the call stack here, before we go async, so that it will contain
       // frames that are relevant to the user instead of just parts of Jasmine.

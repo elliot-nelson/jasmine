@@ -248,4 +248,124 @@ describe("Env", function() {
       expect(globalErrors.install).toHaveBeenCalled();
     });
   });
+
+  // Integration tests for Env-level verification of expect() calls
+  describe('expect() verification', function() {
+    var reporter;
+
+    beforeEach(function() {
+      reporter = jasmine.createSpyObj('reporter', ['jasmineStarted', 'jasmineDone', 'specStarted', 'specDone', 'suiteStarted', 'suiteDone']);
+      env.addReporter(reporter);
+    });
+
+    it('fails when expect() in `it` has no matcher', function(done) {
+      env.it('fails', function() {
+        env.expect('foo');
+      });
+      env.execute();
+      reporter.jasmineDone.and.callFake(function() {
+        expect(reporter.specDone).toHaveBeenCalledTimes(1);
+
+        var result = reporter.specDone.calls.mostRecent().args[0];
+        expect(result.failedExpectations).toEqual([jasmine.objectContaining({
+          passed: false,
+          message: 'Failed: Expectation missing, calls to `expect()` must be followed by a call to the desired matcher'
+        })]);
+        done();
+      });
+    });
+
+    it('only fails for the expect() calls missing a matcher', function(done) {
+      env.it('fails', function() {
+        env.expect('foo');
+        env.expect(3).toEqual(4);
+        env.expect('bar');
+      });
+      env.execute();
+      reporter.jasmineDone.and.callFake(function() {
+        expect(reporter.specDone).toHaveBeenCalledTimes(1);
+
+        var result = reporter.specDone.calls.mostRecent().args[0];
+        expect(result.failedExpectations).toEqual([
+          jasmine.objectContaining({
+            passed: false,
+            message: 'Expected 3 to equal 4.'
+          }),
+          jasmine.objectContaining({
+            passed: false,
+            message: 'Failed: Expectation missing, calls to `expect()` must be followed by a call to the desired matcher'
+          }),
+          jasmine.objectContaining({
+            passed: false,
+            message: 'Failed: Expectation missing, calls to `expect()` must be followed by a call to the desired matcher'
+          })
+        ]);
+        done();
+      });
+    });
+
+    it('fails when expect() in `afterEach`/`beforeEach` has no matcher', function(done) {
+      env.beforeEach(function() {
+        env.expect('foo');
+      });
+      env.afterEach(function() {
+        env.expect('bar');
+      });
+      env.it('fails', function() {
+        env.expect('baz');
+      });
+      env.execute();
+      reporter.jasmineDone.and.callFake(function() {
+        expect(reporter.specDone).toHaveBeenCalledTimes(1);
+
+        var result = reporter.specDone.calls.mostRecent().args[0];
+        expect(result.failedExpectations).toEqual([
+          jasmine.objectContaining({
+            passed: false,
+            message: 'Failed: Expectation missing, calls to `expect()` must be followed by a call to the desired matcher'
+          }),
+          jasmine.objectContaining({
+            passed: false,
+            message: 'Failed: Expectation missing, calls to `expect()` must be followed by a call to the desired matcher'
+          }),
+          jasmine.objectContaining({
+            passed: false,
+            message: 'Failed: Expectation missing, calls to `expect()` must be followed by a call to the desired matcher'
+          })
+        ]);
+        done();
+      });
+    });
+
+    it('fails when expect() in `afterAll`/`beforeAll` has no matcher', function(done) {
+      env.describe('test', function() {
+        env.beforeAll(function() {
+          env.expect('foo');
+        });
+        env.afterAll(function() {
+          env.expect('bar');
+        });
+        env.it('runs', function() {
+          env.expect(3).toEqual(3);
+        });
+      });
+      env.execute();
+      reporter.jasmineDone.and.callFake(function() {
+        expect(reporter.suiteDone).toHaveBeenCalledTimes(1);
+
+        var result = reporter.suiteDone.calls.mostRecent().args[0];
+        expect(result.failedExpectations).toEqual([
+          jasmine.objectContaining({
+            passed: false,
+            message: 'Failed: Expectation missing, calls to `expect()` must be followed by a call to the desired matcher'
+          }),
+          jasmine.objectContaining({
+            passed: false,
+            message: 'Failed: Expectation missing, calls to `expect()` must be followed by a call to the desired matcher'
+          })
+        ]);
+        done();
+      });
+    });
+  });
 });
