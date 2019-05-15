@@ -201,6 +201,8 @@ describe("Env", function() {
 
   describe('#afterEach', function () {
     it('throws an error when it receives a non-fn argument', function() {
+      async function x() { }
+
       expect(function() {
         env.afterEach(undefined);
       }).toThrowError(/afterEach expects a function argument; received \[object (Undefined|DOMWindow|Object)\]/);
